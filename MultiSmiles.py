@@ -38,11 +38,12 @@ class Get_MS():
     def get_nodes(self):
         nodes = dict()
         for reaction in self.reactions:
+            rule = self.get_rules(reaction)[0]
             if len(reaction.reactants) == 1:
-                nodes[str(reaction.reactants[0])] = [None, str(reaction.products[0]), self.get_rules(reaction)[0]]
+                nodes[str(reaction.reactants[0])] = [None, str(reaction.products[0]), rule]
             elif len(reaction.reactants) > 1:
-                nodes[str(reaction.reactants[0])] = [str(reaction.reactants[1]), str(reaction.products[0]), self.get_rules(reaction)[0]]
-                nodes[str(reaction.reactants[1])] = [str(reaction.reactants[0]), str(reaction.products[0]), self.get_rules(reaction)[0]]
+                nodes[str(reaction.reactants[0])] = [str(reaction.reactants[1]), str(reaction.products[0]), rule]
+                nodes[str(reaction.reactants[1])] = [str(reaction.reactants[0]), str(reaction.products[0]), rule]
         return nodes
 
     def get_target(self):
@@ -86,11 +87,11 @@ class Get_MS():
                     if count == 0:
                         if nodes_copy[mol][0] is None:
                             smile_branch.append(str(mol) + str({rule}) + '^')
-                            del nodes_copy[mol]
                         else:
                             smile_branch.append(str(mol) + '.' + str(nodes_copy[mol][0]) + str({rule}) + '+')
                             neigh = nodes_copy[mol][0]
-                            del nodes_copy[mol], nodes_copy[neigh]
+                            del nodes_copy[neigh]
+                        del nodes_copy[mol]
                         count += 1
                     else:
                         if nodes_copy[mol][0] is None:
@@ -108,13 +109,13 @@ class Get_MS():
                                 del nodes_copy[mol]
 
             smiles_all.extend(smile_branch)
-            rule = str([l_v[2] for k, l_v in nodes.items() if target_mol in l_v][0])
-            if nodes[target][0] is None:  # one branch
-                return ''.join(smiles_all) + str({rule}) + '^'
-            elif len(self._get_child(target)) == 0:
-                return ''.join(smiles_all) + str(target) + str({rule}) + '+'
-            else:
-                return ''.join(smiles_all) + str({rule}) + '+'
+        rule = str([l_v[2] for k, l_v in nodes.items() if target_mol in l_v][0])
+        if len([k for k, l_v in self.get_nodes().items() if target_mol in l_v]) == 1: # one branch
+            return ''.join(smiles_all) + str({rule}) + '^'
+        elif any(len(self._get_child(t_child)) == 0 for t_child in nodes_copy): # one molecule in the second branch
+            return ''.join(smiles_all) + str([t_child for t_child in nodes_copy if len(self._get_child(t_child)) == 0][0]) + str({rule}) + '+'
+        else:
+            return ''.join(smiles_all) + str({rule}) + '+'
 
 class parser_MS():
     def __init__(self, smile):
