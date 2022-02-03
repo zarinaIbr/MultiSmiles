@@ -62,11 +62,11 @@ class Get_MS():
 
     def _get_depth(self, node_start, count=0):
         nodes = self.get_nodes()
-        _, v1, _ = nodes[node_start]
-        if self.get_target() != v1:
-            if v1 in nodes:
+        _, p, _ = nodes[node_start]
+        if self.get_target() != p:
+            if p in nodes:
                 count += 1
-                count = self._get_depth(v1, count)
+                count = self._get_depth(p, count)
         return count
 
     def fit(self):
