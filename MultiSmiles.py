@@ -15,8 +15,7 @@ class Get_MS():
                 break
             reaction_center = set(partial_reaction.extended_centers_list[0])
             bare_reaction_center = set(partial_reaction.compose().center_atoms)
-            reactants = []
-            products = []
+            reactants, products = list(), list()
             for mol in partial_reaction.reactants:
                 group_atoms = reaction_center.intersection(mol)
                 if group_atoms:
@@ -76,8 +75,7 @@ class Get_MS():
         nodes_copy, target_mol = nodes.copy(), self.get_target()
         for target in [k for k, l_v in nodes_copy.items() if target_mol in l_v]:
             count = 0
-            all_child = []
-            smile_branch = []
+            all_child, smile_branch = list(), list()
             for p in self._get_child(target):
                 all_child.append(p)
             branch = {child: self._get_depth(child) for child in all_child}
@@ -94,7 +92,6 @@ class Get_MS():
                             neigh = nodes_copy[mol][0]
                             del nodes_copy[mol], nodes_copy[neigh]
                         count += 1
-
                     else:
                         if nodes_copy[mol][0] is None:
                             smile = str({rd}) + '^'
@@ -119,7 +116,6 @@ class Get_MS():
                 my_smile = ''.join(smiles_all) + str(target) + str({rd}) + '+'
             else:
                 my_smile = ''.join(smiles_all) + str({rd}) + '+'
-
         return my_smile
 
 class parser_MS():
@@ -134,6 +130,7 @@ class parser_MS():
                     return (l[0], l[1][:-1], sm_t[sm_t[1:].index(i) + 1:])
                 if len(l) == 3:
                     return (l[0], l[1][:-1], sm_t[sm_t[1:].index(i) + 1:])
+
     def fit(self):
         d = OrderedDict()
         flag = True
