@@ -47,7 +47,7 @@ class Get_MS():
 
     def get_target(self):
         nodes = self.get_nodes()
-        for p in [x for y in nodes.values() for x in y]:
+        for p in [x for y in nodes.values() for x in y[:2]]:
             if p not in [i for i in nodes.keys()] and p is not None:
                 target_mol = p
                 return target_mol
@@ -62,7 +62,7 @@ class Get_MS():
 
     def _get_depth(self, node_start, count=0):
         nodes = self.get_nodes()
-        _, v1 = nodes[node_start]
+        _, v1, _ = nodes[node_start]
         if self.get_target() != v1:
             if v1 in nodes:
                 count += 1
