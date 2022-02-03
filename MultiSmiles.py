@@ -1,6 +1,8 @@
 from CGRtools import ReactionContainer
 from collections import OrderedDict
 from operator import itemgetter
+import string
+import random
 
 class Get_MS():
     def __init__(self, reactions):
@@ -119,3 +121,56 @@ class Get_MS():
                 my_smile = ''.join(smiles_all) + str({rd}) + '+'
 
         return my_smile
+
+class parser_MS():
+    def __init__(self, smile):
+        self.smile = smile
+
+    def _split_smile(self, sm_t):
+        for i in sm_t[1:]:
+            if i == '+' or i == '^':
+                l = sm_t[1:][:sm_t[1:].index(i)].split('{')
+                if len(l) == 2:
+                    return (l[0], l[1][:-1], sm_t[sm_t[1:].index(i) + 1:])
+                if len(l) == 3:
+                    return (l[0], l[1][:-1], sm_t[sm_t[1:].index(i) + 1:])
+    def fit(self):
+        d = OrderedDict()
+        flag = True
+        for num, part in enumerate(self.smile.partition('}'), 1):
+            if num == 1:
+                mol_rule = part.split('{')
+                par = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(2)])
+                if self.smile.partition('}')[2].startswith('^'):
+                    d[mol_rule[0]] = (None, par, mol_rule[1])
+                elif self.smile.partition('}')[2].startswith('+'):
+                    mols = mol_rule[0].split('.')
+                    d[mols[0]] = (mols[1], par, mol_rule[1])
+                    d[mols[1]] = (mols[0], par, mol_rule[1])
+            elif part != '}':
+                next_part = part
+                while flag:
+                    out = self._split_smile(next_part)
+                    reag, rule, next_part = out
+                    par = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(2)])
+                    if len(reag) == 0:  # no reagent
+                        if next_part.startswith('^'):
+                            d[[_ for _ in d.values()][-1][1]] = (None, par, rule)
+                        if next_part.startswith('+'):
+                            point = par
+                            d[[_ for _ in d.values()][-1][1]] = (point, par, rule)  # для соединения веток
+                            d[point] = ([_ for _ in d.values()][-1][1], par, rule)  # для соединения веток
+                    else:
+                        if len(reag) == 1:
+                            if next_part.startswith('^'):  # new b
+                                d[reag] = (None, par, rule)
+                            if next_part.startswith('+'):
+                                d[reag] = ([_ for _ in d.values()][-1][1], par, rule)
+                                d[[_ for _ in d.values()][-1][0]] = (reag, par, rule)
+                        if len(reag) == 2:  # new b
+                            d[reag[0]] = (reag[1], par, rule)
+                            d[reag[1]] = (reag[0], par, rule)
+
+                    if next_part == '+' or next_part == '^':
+                        flag = False
+        return d
