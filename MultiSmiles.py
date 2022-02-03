@@ -54,7 +54,7 @@ class Get_MS():
 
     def _get_child(self, node):
         childs = list()
-        for k,l_v in self.get_nodes().items():
+        for k, l_v in self.get_nodes().items():
             if node == l_v[1]:
                 childs.append(k)
                 childs.extend(self._get_child(k))
@@ -82,41 +82,39 @@ class Get_MS():
             st_branch = OrderedDict(sorted(branch.items(), key=itemgetter(1), reverse=True))
             for mol in st_branch:
                 if mol in nodes_copy:
-                    rd = str(nodes_copy[mol][2])
+                    rule = str(nodes_copy[mol][2])
                     if count == 0:
                         if nodes_copy[mol][0] is None:
-                            smile = str(mol) + str({rd}) + '^'
+                            smile_branch.append(str(mol) + str({rule}) + '^')
                             del nodes_copy[mol]
                         else:
-                            smile = str(mol) + '.' + str(nodes_copy[mol][0]) + str({rd}) + '+'
+                            smile_branch.append(str(mol) + '.' + str(nodes_copy[mol][0]) + str({rule}) + '+')
                             neigh = nodes_copy[mol][0]
                             del nodes_copy[mol], nodes_copy[neigh]
                         count += 1
                     else:
                         if nodes_copy[mol][0] is None:
-                            smile = str({rd}) + '^'
+                            smile_branch.append(str({rule}) + '^')
                             del nodes_copy[mol]
                         else:
                             if mol in [v[1] for v in nodes_copy.values()]:
-                                smile = str(mol) + str({rd}) + '+'
+                                smile_branch.append(str(mol) + str({rule}) + '+')
                             if mol not in [v[1] for v in nodes_copy.values()]:
-                                smile = str(nodes_copy[mol][0]) + str({rd}) + '+'
+                                smile_branch.append(str(nodes_copy[mol][0]) + str({rule}) + '+')
                             if nodes_copy[mol][1] != target_mol:
                                 neigh = nodes_copy[mol][0]
                                 del nodes_copy[mol], nodes_copy[neigh]
                             else:
                                 del nodes_copy[mol]
-                    smile_branch.append(smile)
 
-            rd = str(nodes_copy[mol][2])
             smiles_all.extend(smile_branch)
-            if nodes[target][0] == None:  # one branch
-                my_smile = ''.join(smiles_all) + str({rd}) + '^'
+            rule = str([l_v[2] for k, l_v in nodes.items() if target_mol in l_v][0])
+            if nodes[target][0] is None:  # one branch
+                return ''.join(smiles_all) + str({rule}) + '^'
             elif len(self._get_child(target)) == 0:
-                my_smile = ''.join(smiles_all) + str(target) + str({rd}) + '+'
+                return ''.join(smiles_all) + str(target) + str({rule}) + '+'
             else:
-                my_smile = ''.join(smiles_all) + str({rd}) + '+'
-        return my_smile
+                return ''.join(smiles_all) + str({rule}) + '+'
 
 class parser_MS():
     def __init__(self, smile):
