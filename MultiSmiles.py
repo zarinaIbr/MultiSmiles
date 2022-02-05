@@ -151,17 +151,17 @@ class parser_MS():
                     par = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(2)])
                     if len(reag) == 0:  # no reagent
                         if next_part.startswith('^'):
-                            d[[_ for _ in d.values()][-1][1]] = (None, par, rule)
+                            d[list(d.values())[-1][1]] = (None, par, rule)
                         if next_part.startswith('+'):
-                            d[[_ for _ in d.values()][-2][1]] = ([_ for _ in d.values()][-1][1], par, rule)  # для соединения веток
-                            d[[_ for _ in d.values()][-1][0]] = ([_ for _ in d.keys()][-1], par, rule)  # для соединения веток
+                            d[list(d.values())[-2][1]] = (list(d.values())[-1][1], par, rule)  # для соединения веток
+                            d[list(d.values())[-1][0]] = (list(d.keys())[-1], par, rule)  # для соединения веток
                     else:
                         if len(reag) == 1:
                             if next_part.startswith('^'):  # new b
                                 d[reag] = (None, par, rule)
                             if next_part.startswith('+'):
-                                d[reag] = ([_ for _ in d.values()][-1][1], par, rule)
-                                d[[_ for _ in d.values()][-1][0]] = (reag, par, rule)
+                                d[reag] = (list(d.values())[-1][1], par, rule)
+                                d[list(d.values())[-1][0]] = (reag, par, rule)
                         if len(reag) == 2:  # new b
                             d[reag[0]] = (reag[1], par, rule)
                             d[reag[1]] = (reag[0], par, rule)
