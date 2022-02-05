@@ -126,9 +126,9 @@ class parser_MS():
             if i == '+' or i == '^':
                 l = sm_t[1:][:sm_t[1:].index(i)].split('{')
                 if len(l) == 2:
-                    return (l[0], l[1][:-1], sm_t[sm_t[1:].index(i) + 1:])
+                    return (l[0], l[1][1:-2], sm_t[sm_t[1:].index(i) + 1:])
                 if len(l) == 3:
-                    return (l[0], l[1][:-1], sm_t[sm_t[1:].index(i) + 1:])
+                    return (l[0], l[1][1:-2], sm_t[sm_t[1:].index(i) + 1:])
 
     def fit(self):
         d = OrderedDict()
@@ -138,11 +138,11 @@ class parser_MS():
                 mol_rule = part.split('{')
                 par = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(2)])
                 if self.smile.partition('}')[2].startswith('^'):
-                    d[mol_rule[0]] = (None, par, mol_rule[1])
+                    d[mol_rule[0]] = (None, par, mol_rule[1][1:-1])
                 elif self.smile.partition('}')[2].startswith('+'):
                     mols = mol_rule[0].split('.')
-                    d[mols[0]] = (mols[1], par, mol_rule[1])
-                    d[mols[1]] = (mols[0], par, mol_rule[1])
+                    d[mols[0]] = (mols[1], par, mol_rule[1][1:-1])
+                    d[mols[1]] = (mols[0], par, mol_rule[1][1:-1])
             elif part != '}':
                 next_part = part
                 while flag:
