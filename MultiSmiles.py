@@ -153,9 +153,8 @@ class parser_MS():
                         if next_part.startswith('^'):
                             d[[_ for _ in d.values()][-1][1]] = (None, par, rule)
                         if next_part.startswith('+'):
-                            point = par
-                            d[[_ for _ in d.values()][-1][1]] = (point, par, rule)  # для соединения веток
-                            d[point] = ([_ for _ in d.values()][-1][1], par, rule)  # для соединения веток
+                            d[[_ for _ in d.values()][-2][1]] = ([_ for _ in d.values()][-1][1], par, rule)  # для соединения веток
+                            d[[_ for _ in d.values()][-1][0]] = ([_ for _ in d.keys()][-1], par, rule)  # для соединения веток
                     else:
                         if len(reag) == 1:
                             if next_part.startswith('^'):  # new b
@@ -166,7 +165,6 @@ class parser_MS():
                         if len(reag) == 2:  # new b
                             d[reag[0]] = (reag[1], par, rule)
                             d[reag[1]] = (reag[0], par, rule)
-
                     if next_part == '+' or next_part == '^':
                         flag = False
         return d
