@@ -1,8 +1,8 @@
 from CGRtools import ReactionContainer
 from collections import OrderedDict
 from operator import itemgetter
-import string
-import random
+from random import sample
+from string import ascii_letters, digits
 
 class Get_MS():
     def __init__(self, reactions):
@@ -71,7 +71,7 @@ class Get_MS():
         return count
 
     def fit(self):
-        smiles_all = []
+        smiles_all, rules = [], []
         nodes = self.get_nodes()
         nodes_copy, target_mol = nodes.copy(), self.get_target()
         for target in [k for k, l_v in nodes_copy.items() if target_mol in l_v]:
@@ -83,25 +83,28 @@ class Get_MS():
             st_branch = OrderedDict(sorted(branch.items(), key=itemgetter(1), reverse=True))
             for mol in st_branch:
                 if mol in nodes_copy:
-                    rule = str(nodes_copy[mol][2])
+                    rule = nodes_copy[mol][2]
                     if count == 0:
                         if nodes_copy[mol][0] is None:
-                            smile_branch.append(str(mol) + str({rule}) + '^')
+                            smile_branch.append(str(mol) + str({str(rule)}) + '^')
                         else:
-                            smile_branch.append(str(mol) + '.' + str(nodes_copy[mol][0]) + str({rule}) + '+')
+                            smile_branch.append(str(mol) + '.' + str(nodes_copy[mol][0]) + str({str(rule)}) + '+')
                             neigh = nodes_copy[mol][0]
                             del nodes_copy[neigh]
+                        rules.append(rule)
                         del nodes_copy[mol]
                         count += 1
                     else:
                         if nodes_copy[mol][0] is None:
-                            smile_branch.append(str({rule}) + '^')
+                            smile_branch.append(str({str(rule)}) + '^')
+                            rules.append(rule)
                             del nodes_copy[mol]
                         else:
                             if mol in [v[1] for v in nodes_copy.values()]:
-                                smile_branch.append(str(mol) + str({rule}) + '+')
+                                smile_branch.append(str(mol) + str({str(rule)}) + '+')
                             if mol not in [v[1] for v in nodes_copy.values()]:
-                                smile_branch.append(str(nodes_copy[mol][0]) + str({rule}) + '+')
+                                smile_branch.append(str(nodes_copy[mol][0]) + str({str(rule)}) + '+')
+                            rules.append(rule)
                             if nodes_copy[mol][1] != target_mol:
                                 neigh = nodes_copy[mol][0]
                                 del nodes_copy[mol], nodes_copy[neigh]
@@ -109,60 +112,62 @@ class Get_MS():
                                 del nodes_copy[mol]
 
             smiles_all.extend(smile_branch)
-        rule = str([l_v[2] for k, l_v in nodes.items() if target_mol in l_v][0])
-        if len([k for k, l_v in self.get_nodes().items() if target_mol in l_v]) == 1: # one branch
-            return ''.join(smiles_all) + str({rule}) + '^'
-        elif any(len(self._get_child(t_child)) == 0 for t_child in nodes_copy): # one molecule in the second branch
-            return ''.join(smiles_all) + str([t_child for t_child in nodes_copy if len(self._get_child(t_child)) == 0][0]) + str({rule}) + '+'
+        rule = [l_v[2] for k, l_v in nodes.items() if target_mol in l_v][0]
+        rules.append(rule)
+        if len([k for k, l_v in self.get_nodes().items() if target_mol in l_v]) == 1:  # one branch
+            return ''.join(smiles_all) + str({str(rule)}) + '^', rules
+        elif any(len(self._get_child(t_child)) == 0 for t_child in nodes_copy):  # one molecule in the second branch
+            return ''.join(smiles_all) + str([t_child for t_child in nodes_copy if len(self._get_child(t_child)) == 0][0]) + str({str(rule)}) + '+', rules
         else:
-            return ''.join(smiles_all) + str({rule}) + '+'
+            return ''.join(smiles_all) + str({str(rule)}) + '+', rules
 
 class parser_MS():
-    def __init__(self, smile):
-        self.smile = smile
+    def __init__(self, smile_s):
+        self.smile = smile_s[0]
+        self.rules = smile_s[1].copy()
 
     def _split_smile(self, sm_t):
         for i in sm_t[1:]:
             if i == '+' or i == '^':
                 l = sm_t[1:][:sm_t[1:].index(i)].split('{')
                 if len(l) == 2:
-                    return (l[0], l[1][1:-2], sm_t[sm_t[1:].index(i) + 1:])
+                    return (l[0], sm_t[sm_t[1:].index(i) + 1:])
                 if len(l) == 3:
-                    return (l[0], l[1][1:-2], sm_t[sm_t[1:].index(i) + 1:])
+                    return (l[0], sm_t[sm_t[1:].index(i) + 1:])
 
     def fit(self):
         d = OrderedDict()
         flag = True
         for num, part in enumerate(self.smile.partition('}'), 1):
             if num == 1:
-                mol_rule = part.split('{')
-                par = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(2)])
+                rule = self.rules.pop(0)
+                par = ''.join(sample(ascii_letters + digits, 4))
                 if self.smile.partition('}')[2].startswith('^'):
-                    d[mol_rule[0]] = (None, par, mol_rule[1][1:-1])
+                    d[part.split('{')[0]] = (None, par, rule)
                 elif self.smile.partition('}')[2].startswith('+'):
-                    mols = mol_rule[0].split('.')
-                    d[mols[0]] = (mols[1], par, mol_rule[1][1:-1])
-                    d[mols[1]] = (mols[0], par, mol_rule[1][1:-1])
+                    mols = part.split('{')[0].split('.')
+                    d[mols[0]] = (mols[1], par, rule)
+                    d[mols[1]] = (mols[0], par, rule)
             elif part != '}':
                 next_part = part
                 while flag:
-                    out = self._split_smile(next_part)
-                    reag, rule, next_part = out
-                    par = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(2)])
+                    reag, next_part = self._split_smile(next_part)
+                    rule = self.rules.pop(0)
+                    par = ''.join(sample(ascii_letters + digits, 4))
                     if len(reag) == 0:  # no reagent
                         if next_part.startswith('^'):
                             d[list(d.values())[-1][1]] = (None, par, rule)
-                        if next_part.startswith('+'):
+                        elif next_part.startswith('+'):
                             d[list(d.values())[-2][1]] = (list(d.values())[-1][1], par, rule)  # для соединения веток
                             d[list(d.values())[-1][0]] = (list(d.keys())[-1], par, rule)  # для соединения веток
-                    else:
-                        if len(reag) == 1:
+                    else: #reag
+                        if '.' not in reag:
                             if next_part.startswith('^'):  # new b
                                 d[reag] = (None, par, rule)
-                            if next_part.startswith('+'):
+                            elif next_part.startswith('+'):
                                 d[reag] = (list(d.values())[-1][1], par, rule)
                                 d[list(d.values())[-1][0]] = (reag, par, rule)
-                        if len(reag) == 2:  # new b
+                        if '.' in reag:  # new b
                             d[reag[0]] = (reag[1], par, rule)
                             d[reag[1]] = (reag[0], par, rule)
                     if next_part == '+' or next_part == '^':
