@@ -2,7 +2,8 @@ from CGRtools import ReactionContainer
 from collections import OrderedDict
 from operator import itemgetter
 from random import sample
-from string import ascii_letters, digits
+from string import digits
+from CGRtools.reactor import Reactor
 
 class Get_MS():
     def __init__(self, reactions):
@@ -121,19 +122,32 @@ class Get_MS():
         else:
             return ''.join(smiles_all) + str({str(rule)}) + '+', rules
 
+
 class parser_MS():
     def __init__(self, smile_s):
         self.smile = smile_s[0]
         self.rules = smile_s[1].copy()
+
+    def generate(self, rules, reactants):
+        reactors = [Reactor(x, delete_atoms=True) for x in rules]
+        seen = set()
+        queue = [(r(reactants, False), [0] * len(rules)) for r in reactors]
+        while queue:
+            r, n = queue.pop(0)
+            for i in r:
+                if i in seen:
+                    continue
+                seen.add(i)
+                yield i
 
     def _split_smile(self, sm_t):
         for i in sm_t[1:]:
             if i == '+' or i == '^':
                 l = sm_t[1:][:sm_t[1:].index(i)].split('{')
                 if len(l) == 2:
-                    return (l[0], sm_t[sm_t[1:].index(i) + 1:])
+                    return l[0], sm_t[sm_t[1:].index(i) + 1:]
                 if len(l) == 3:
-                    return (l[0], sm_t[sm_t[1:].index(i) + 1:])
+                    return l[0], sm_t[sm_t[1:].index(i) + 1:]
 
     def fit(self):
         d = OrderedDict()
@@ -141,35 +155,35 @@ class parser_MS():
         for num, part in enumerate(self.smile.partition('}'), 1):
             if num == 1:
                 rule = self.rules.pop(0)
-                par = ''.join(sample(ascii_letters + digits, 4))
+                par = ''.join(sample(digits, 4))
                 if self.smile.partition('}')[2].startswith('^'):
-                    d[part.split('{')[0]] = (None, par, rule)
+                    d[part.split('{')[0]] = [None, par, rule]
                 elif self.smile.partition('}')[2].startswith('+'):
                     mols = part.split('{')[0].split('.')
-                    d[mols[0]] = (mols[1], par, rule)
-                    d[mols[1]] = (mols[0], par, rule)
+                    d[mols[0]] = [mols[1], par, rule]
+                    d[mols[1]] = [mols[0], par, rule]
             elif part != '}':
                 next_part = part
                 while flag:
                     reag, next_part = self._split_smile(next_part)
                     rule = self.rules.pop(0)
-                    par = ''.join(sample(ascii_letters + digits, 4))
+                    par = ''.join(sample(digits, 4))
                     if len(reag) == 0:  # no reagent
                         if next_part.startswith('^'):
-                            d[list(d.values())[-1][1]] = (None, par, rule)
+                            d[list(d.values())[-1][1]] = [None, par, rule]
                         elif next_part.startswith('+'):
-                            d[list(d.values())[-2][1]] = (list(d.values())[-1][1], par, rule)  # для соединения веток
-                            d[list(d.values())[-1][0]] = (list(d.keys())[-1], par, rule)  # для соединения веток
-                    else: #reag
+                            d[list(d.values())[-2][1]] = [list(d.values())[-1][1], par, rule]  # для соединения веток
+                            d[list(d.values())[-1][0]] = [list(d.keys())[-1], par, rule]  # для соединения веток
+                    else:  # reag
                         if '.' not in reag:
                             if next_part.startswith('^'):  # new b
-                                d[reag] = (None, par, rule)
+                                d[reag] = [None, par, rule]
                             elif next_part.startswith('+'):
-                                d[reag] = (list(d.values())[-1][1], par, rule)
-                                d[list(d.values())[-1][0]] = (reag, par, rule)
+                                d[reag] = [list(d.values())[-1][1], par, rule]
+                                d[list(d.values())[-1][0]] = [reag, par, rule]
                         if '.' in reag:  # new b
-                            d[reag[0]] = (reag[1], par, rule)
-                            d[reag[1]] = (reag[0], par, rule)
+                            d[reag[0]] = [reag[1], par, rule]
+                            d[reag[1]] = [reag[0], par, rule]
                     if next_part == '+' or next_part == '^':
                         flag = False
         return d
