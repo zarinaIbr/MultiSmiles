@@ -1,9 +1,12 @@
-from CGRtools import ReactionContainer
+from CGRtools import ReactionContainer, SMILESRead
 from collections import OrderedDict
 from operator import itemgetter
 from random import sample
 from string import digits
 from CGRtools.reactor import Reactor
+from tempfile import mkdtemp
+from shutil import rmtree
+from pathlib import Path
 
 class Get_MS():
     def __init__(self, reactions):
@@ -149,7 +152,7 @@ class parser_MS():
                 if len(l) == 3:
                     return l[0], sm_t[sm_t[1:].index(i) + 1:]
 
-    def fit(self):
+    def gen_graph(self):
         d = OrderedDict()
         flag = True
         for num, part in enumerate(self.smile.partition('}'), 1):
@@ -186,4 +189,34 @@ class parser_MS():
                             d[reag[1]] = [reag[0], par, rule]
                     if next_part == '+' or next_part == '^':
                         flag = False
+        return d
+
+    def get_p(self, sm_mol, d):
+        work_dir = Path(mkdtemp(prefix='sm_'))
+        idx = d[sm_mol][1]
+        file = work_dir / 'sm_mol'
+        with open(file, 'w') as f:
+            f.write(sm_mol)
+        mol = SMILESRead(Path(file)).read()[0]
+        mol.clean2d()
+        reaction = [_ for _ in self.generate([d[sm_mol][2]], [mol])]
+        rmtree(work_dir)
+        if reaction:
+            return idx, reaction
+        return
+
+    def fit(self):
+        d = self.gen_graph()
+        mols = [m for m in d if not m.isdigit()]
+        for num, mol in enumerate(mols):
+            args = self.get_p(mol, d)
+            if args:
+                idx, product = args[0], args[1][0].products[0]
+                d[mol][1] = product
+                if idx in d.keys():
+                    d[product] = d[idx]
+                    del d[idx]
+                for mol in d:
+                    if idx in d[mol]:
+                        d[mol][d[mol].index(idx)] = product
         return d
